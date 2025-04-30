@@ -80,7 +80,6 @@
         scene.add(dice);
         camera.position.set(0, 0, 5);
       });
-    
 
       function animate() {
         requestAnimationFrame(animate);
@@ -88,24 +87,72 @@
       }
       animate();
 
-      // Botão de rolar dado
+      const numberRotations = {
+        1: { x: 20.668, y: 17.312, z: 17.709 },
+        2: { x: 18.148, y: 18.172, z: 17.709 },
+        3: { x: 18.918, y: 20.872, z: 17.709 },
+        4: { x: 18.628, y: 23.272, z: 17.709 },
+        5: { x: 19.288, y: 24.412, z: 17.709 },
+        6: { x: 18.438, y: 28.352, z: 17.709 },
+        7: { x: 19.368, y: 32.242, z: 17.709 },
+        8: { x: 10.231, y: 7.834, z: 6.455 },
+        9: { x: 21.498, y: 31.262, z: 17.709 },
+        10: { x: 24.578, y: 32.222, z: 17.709 },
+        11: { x: 25.618, y: 29.162, z: 17.709 },
+        12: { x: 24.628, y: 25.282, z: 17.709 },
+        13: { x: 26.078, y: 23.582, z: 17.709 },
+        14: { x: 24.408, y: 16.502, z: 17.709 },
+        15: { x: 21.538, y: 15.602, z: 17.709 },
+        16: { x: 18.188, y: 8.622, z: 17.709 },
+        17: { x: 18.888, y: 13.832, z: 17.709 },
+        18: { x: 18.808, y: 17.592, z: 17.709 },
+        19: { x: 19.608, y: 21.302, z: 17.709 },
+        20: { x: 17.528, y: 23.562, z: 17.709 },
+      };
+
       document.getElementById("rollBtn").addEventListener("click", () => {
         if (!dice) return;
 
-        const rand = () => Math.floor(Math.random() * 5 + 1);
-        const targetRotation = {
-          x: rand() * (Math.PI / 2),
-          y: rand() * (Math.PI / 2),
-          z: rand() * (Math.PI / 2),
-        };
+        const result = Math.floor(Math.random() * 20) + 1;
+        const rot = numberRotations[result];
+
+        const spin = rot
+          ? {
+              x: rot.x + Math.PI * 6,
+              y: rot.y + Math.PI * 6,
+              z: rot.z + Math.PI * 6,
+            }
+          : {
+              x: dice.rotation.x + Math.PI * 2 * (Math.random() + 1),
+              y: dice.rotation.y + Math.PI * 2 * (Math.random() + 1),
+              z: dice.rotation.z + Math.PI * 2 * (Math.random() + 1),
+            };
+
         gsap.to(dice.rotation, {
-          duration: 2,
-          x: targetRotation.x + Math.PI * 4,
-          y: targetRotation.y + Math.PI * 4,
-          z: targetRotation.z + Math.PI * 4,
-          ease: "power3.out",
+          duration: 3,
+          ...spin,
+          ease: "power4.out",
+          onComplete: () => {
+            console.log("Número rolado:", result);
+            // luz de destaque
+            const hl = new THREE.PointLight(0xffd700, 2, 5);
+            hl.position.set(0, 0, 3);
+            scene.add(hl);
+            setTimeout(() => scene.remove(hl), 1500);
+          },
         });
       });
+
+      function highlightResult() {
+        const highlight = new THREE.PointLight(0xffd700, 2, 5); // Luz dourada
+        highlight.position.set(0, 0, 3);
+        scene.add(highlight);
+
+        // Remover a luz depois de 1.5 segundos
+        setTimeout(() => {
+          scene.remove(highlight);
+        }, 1500);
+      }
 
       let isDragging = false;
       let previousMousePosition = { x: 0, y: 0 };
