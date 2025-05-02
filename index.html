@@ -1,27 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
     <meta charset="UTF-8" />
     <title>D20 3D Dice</title>
     <style>
+      html,
       body {
+        width: 100%;
+        height: 100%;
         margin: 0;
+        padding: 0;
         overflow: hidden;
+        background: #3b3a39;
       }
       canvas {
         display: block;
+        width: 100%;
+        height: 100%;
       }
       #rollBtn {
         position: absolute;
         top: 20px;
         left: 20px;
-        padding: 10px 20px;
-        background: #333;
-        color: white;
-        border: none;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #5a2e27, #301a17);
+        color: #f0e7d8;
+        border: 2px solid #8c5a4b;
+        border-radius: 8px;
         font-size: 18px;
+        font-family: "Cinzel", sans-serif;
         cursor: pointer;
         z-index: 10;
+        transition: background 0.2s, transform 0.1s;
+      }
+      #rollBtn:active {
+        background: linear-gradient(135deg, #301a17, #5a2e27);
+        transform: scale(0.96);
+      }
+
+      @media (max-width: 600px) {
+        #rollBtn {
+          bottom: 20px;
+          top: auto;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 20px;
+          padding: 14px 28px;
+        }
+        #rollBtn:active {
+          transform: translateX(-50%) scale(0.96);
+        }
       }
     </style>
   </head>
@@ -45,14 +79,12 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-      scene.add(ambientLight);
+      scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+      const dl = new THREE.DirectionalLight(0xffffff, 1);
+      dl.position.set(5, 10, 5);
+      scene.add(dl);
 
-      const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
-      directionalLight1.position.set(5, 10, 5);
-      scene.add(directionalLight1);
-
-      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.0);
       directionalLight2.position.set(-5, -10, -5);
       scene.add(directionalLight2);
 
@@ -61,22 +93,17 @@
       scene.add(pointLight);
 
       let dice;
-
       const loader = new THREE.GLTFLoader();
-      loader.load("free-d20-baked-game-ready/source/D20.glb", function (gltf) {
+      loader.load("free-d20-baked-game-ready/source/D20.glb", (gltf) => {
         dice = gltf.scene;
 
         let box = new THREE.Box3().setFromObject(dice);
-        let size = new THREE.Vector3();
+        const size = new THREE.Vector3(),
+          center = new THREE.Vector3();
         box.getSize(size);
-        let center = new THREE.Vector3();
         box.getCenter(center);
         dice.position.sub(center);
-
-        let maxDim = Math.max(size.x, size.y, size.z);
-        let scaleFactor = 2 / maxDim;
-        dice.scale.setScalar(scaleFactor);
-
+        dice.scale.setScalar(2 / Math.max(size.x, size.y, size.z));
         scene.add(dice);
         camera.position.set(0, 0, 5);
       });
@@ -86,6 +113,12 @@
         renderer.render(scene, camera);
       }
       animate();
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
 
       const numberRotations = {
         1: { x: 20.668, y: 17.312, z: 17.709 },
@@ -157,28 +190,41 @@
       let isDragging = false;
       let previousMousePosition = { x: 0, y: 0 };
 
-      renderer.domElement.addEventListener("mousedown", (event) => {
+      renderer.domElement.addEventListener("mousedown", onPointerDown);
+      renderer.domElement.addEventListener("mousemove", onPointerMove);
+      renderer.domElement.addEventListener("mouseup", onPointerUp);
+
+      renderer.domElement.addEventListener("touchstart", onPointerDown);
+      renderer.domElement.addEventListener("touchmove", onPointerMove);
+      renderer.domElement.addEventListener("touchend", onPointerUp);
+
+      function getPointer(event) {
+        const e = event.touches ? event.touches[0] : event;
+        return { x: e.clientX, y: e.clientY };
+      }
+
+      function onPointerDown(evt) {
         isDragging = true;
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-      });
+        const p = getPointer(evt);
+        previousPointer = { x: p.x, y: p.y };
+      }
 
-      renderer.domElement.addEventListener("mouseup", () => {
-        isDragging = false;
-      });
-
-      renderer.domElement.addEventListener("mousemove", (event) => {
+      function onPointerMove(evt) {
         if (!dice || !isDragging) return;
-
+        evt.preventDefault();
+        const p = getPointer(evt);
         const deltaMove = {
-          x: event.clientX - previousMousePosition.x,
-          y: event.clientY - previousMousePosition.y,
+          x: p.x - previousPointer.x,
+          y: p.y - previousPointer.y,
         };
-
         dice.rotation.y += deltaMove.x * 0.01;
         dice.rotation.x += deltaMove.y * 0.01;
+        previousPointer = { x: p.x, y: p.y };
+      }
 
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-      });
+      function onPointerUp() {
+        isDragging = false;
+      }
     </script>
   </body>
 </html>
