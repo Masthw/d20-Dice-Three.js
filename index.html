@@ -167,7 +167,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
       const dl = new THREE.DirectionalLight(0xffffff, 1);
       dl.position.set(5, 10, 5);
       scene.add(dl);
@@ -179,6 +179,14 @@
       const pointLight = new THREE.PointLight(0xffffff, 1.0);
       pointLight.position.set(2, 2, 2);
       scene.add(pointLight);
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 2.0);
+      hemiLight.position.set(20, 20, 20);
+      scene.add(hemiLight);
+
+      const spot = new THREE.SpotLight(0xffffff, 0.5, 0, Math.PI / 6, 0.2, 1);
+      spot.position.set(0, 5, 5);
+      scene.add(spot);
 
       let dice;
       const loader = new THREE.GLTFLoader();
@@ -245,20 +253,30 @@
         if (!dice) return;
         rollSound.currentTime = 0;
         rollSound.play();
+
         const result = Math.floor(Math.random() * 20) + 1;
         const preset = numberRotations[result];
-        const spins = Math.floor(Math.random() * 3) + 2;
-        const target = {
-          x: preset.x + spins * Math.PI * 2,
-          y: preset.y + spins * Math.PI * 2,
-          z: preset.z + spins * Math.PI * 2,
-        };
-        const duration = 1.5 + Math.random() * 1.5;
+        const baseSpins = 2;
+        const fullCircle = Math.PI * 2;
+
+        const norm = (angle) =>
+          ((angle % fullCircle) + fullCircle) % fullCircle;
+
+        const dx =
+          baseSpins * fullCircle +
+          ((preset.x - norm(dice.rotation.x) + fullCircle) % fullCircle);
+        const dy =
+          baseSpins * fullCircle +
+          ((preset.y - norm(dice.rotation.y) + fullCircle) % fullCircle);
+        const dz =
+          baseSpins * fullCircle +
+          ((preset.z - norm(dice.rotation.z) + fullCircle) % fullCircle);
+
         gsap.to(dice.rotation, {
-          duration,
-          x: target.x,
-          y: target.y,
-          z: target.z,
+          duration: 4,
+          x: dice.rotation.x + dx,
+          y: dice.rotation.y + dy,
+          z: dice.rotation.z + dz,
           ease: "power4.out",
           onComplete: () => {
             numberSpan.textContent = result;
@@ -277,7 +295,6 @@
             } else {
               title.textContent = "Resultado";
             }
-
             modal.style.display = "flex";
           },
         });
