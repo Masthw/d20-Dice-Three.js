@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -8,6 +9,7 @@
       rel="stylesheet"
     />
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>D20 3D Dice</title>
     <style>
       html,
@@ -53,16 +55,19 @@
       }
       @media (max-width: 600px) {
         #rollBtn {
-          bottom: 20px;
           top: auto;
+          bottom: 20%;
           left: 50%;
-          width: 90%;
-          height: auto;
+          width: 60%;
+          height: 80px;
           font-size: 20px;
           padding: 14px 28px;
         }
         #rollBtn:active {
           transform: translateX(-50%) scale(0.96);
+        }
+        #modalContent {
+          width: 60% !important;
         }
       }
       #resultModal {
@@ -83,7 +88,6 @@
         border-radius: 15px;
         text-align: center;
         font-family: "Cinzel", serif;
-        max-width: 90%;
         width: 400px;
         animation: fadeIn 0.5s ease;
       }
@@ -115,6 +119,10 @@
         cursor: pointer;
         font-size: 16px;
         font-family: "Cinzel", serif;
+      }
+      #closeModal:hover {
+        background: linear-gradient(135deg, #7b3f35, #3e211d);
+        box-shadow: 0 0 12px #8c5a4b;
       }
       @keyframes fadeIn {
         from {
