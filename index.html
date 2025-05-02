@@ -27,29 +27,37 @@
       }
       #rollBtn {
         position: absolute;
-        top: 20px;
-        left: 20px;
-        padding: 12px 24px;
+        bottom: 20%;
+        left: 50%;
+        width: 320px;
+        height: 80px;
+        transform: translateX(-50%);
+        padding: 14px 28px;
         background: linear-gradient(135deg, #5a2e27, #301a17);
         color: #f0e7d8;
         border: 2px solid #8c5a4b;
-        border-radius: 8px;
-        font-size: 18px;
+        border-radius: 10px;
+        font-size: 20px;
         font-family: "Cinzel", sans-serif;
         cursor: pointer;
         z-index: 10;
-        transition: background 0.2s, transform 0.1s;
+        transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+      }
+      #rollBtn:hover {
+        background: linear-gradient(135deg, #7b3f35, #3e211d);
+        box-shadow: 0 0 12px #8c5a4b;
+        transform: translateX(-50%) scale(1.05);
       }
       #rollBtn:active {
-        background: linear-gradient(135deg, #301a17, #5a2e27);
-        transform: scale(0.96);
+        transform: translateX(-50%) scale(0.96);
       }
       @media (max-width: 600px) {
         #rollBtn {
           bottom: 20px;
           top: auto;
           left: 50%;
-          transform: translateX(-50%);
+          width: 90%;
+          height: auto;
           font-size: 20px;
           padding: 14px 28px;
         }
@@ -71,27 +79,52 @@
       }
       #modalContent {
         background: #f0e7d8;
-        padding: 20px 30px;
-        border-radius: 10px;
+        padding: 40px 60px;
+        border-radius: 15px;
         text-align: center;
         font-family: "Cinzel", serif;
+        max-width: 90%;
+        width: 400px;
+        animation: fadeIn 0.5s ease;
       }
       #modalContent h2 {
         margin: 0 0 10px;
+        font-size: 22px;
+        font-weight: bold;
       }
       #modalContent p {
         margin: 5px 0;
         font-size: 1.2rem;
       }
+      #rollNumber {
+        color: #5a2e27;
+        font-size: 32px;
+        display: inline-block;
+        transition: transform 0.4s ease;
+      }
+      #rollNumber.animate {
+        transform: scale(1.5);
+      }
       #closeModal {
-        margin-top: 15px;
-        padding: 8px 16px;
+        margin-top: 20px;
+        padding: 10px 20px;
         background: #301a17;
         color: #f0e7d8;
         border: none;
-        border-radius: 5px;
+        border-radius: 6px;
         cursor: pointer;
+        font-size: 16px;
         font-family: "Cinzel", serif;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
       }
     </style>
   </head>
@@ -105,9 +138,9 @@
       </div>
     </div>
 
-    <audio id="rollSound"  preload="auto" src="sounds/roll.mp3"></audio>
-    <audio id="critSound"  preload="auto" src="sounds/crit.mp3"></audio>
-    <audio id="failSound"  preload="auto" src="sounds/error.mp3"></audio>
+    <audio id="rollSound" preload="auto" src="sounds/roll.mp3"></audio>
+    <audio id="critSound" preload="auto" src="sounds/crit.mp3"></audio>
+    <audio id="failSound" preload="auto" src="sounds/error.mp3"></audio>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -200,7 +233,6 @@
       document.getElementById("closeModal").onclick = () =>
         (modal.style.display = "none");
 
-      // roll button
       document.getElementById("rollBtn").addEventListener("click", () => {
         if (!dice) return;
         rollSound.currentTime = 0;
@@ -221,22 +253,28 @@
           z: target.z,
           ease: "power4.out",
           onComplete: () => {
-            if (result === 20) critSound.play();
-            else if (result === 1) failSound.play();
             numberSpan.textContent = result;
-            title.textContent =
-              result === 20
-                ? "Sucesso Crítico!"
-                : result === 1
-                ? "Falha Crítica"
-                : "Resultado";
-            text.innerHTML = `Você rolou um <strong>${result}</strong>`;
+            numberSpan.classList.add("animate");
+
+            setTimeout(() => numberSpan.classList.remove("animate"), 600);
+
+            if (result === 20) {
+              title.textContent = "Sucesso Crítico!";
+              critSound.currentTime = 0;
+              critSound.play();
+            } else if (result === 1) {
+              title.textContent = "Falha Crítica!";
+              failSound.currentTime = 0;
+              failSound.play();
+            } else {
+              title.textContent = "Resultado";
+            }
+
             modal.style.display = "flex";
           },
         });
       });
 
-      // drag handlers
       let isDragging = false,
         prev = { x: 0, y: 0 };
       function getPointer(e) {
