@@ -18,6 +18,7 @@
         padding: 0;
         overflow: hidden;
         background: #3b3a39;
+        font-family: "Poppins", sans-serif;
       }
       canvas {
         display: block;
@@ -43,7 +44,6 @@
         background: linear-gradient(135deg, #301a17, #5a2e27);
         transform: scale(0.96);
       }
-
       @media (max-width: 600px) {
         #rollBtn {
           bottom: 20px;
@@ -57,10 +57,57 @@
           transform: translateX(-50%) scale(0.96);
         }
       }
+      #resultModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 20;
+      }
+      #modalContent {
+        background: #f0e7d8;
+        padding: 20px 30px;
+        border-radius: 10px;
+        text-align: center;
+        font-family: "Cinzel", serif;
+      }
+      #modalContent h2 {
+        margin: 0 0 10px;
+      }
+      #modalContent p {
+        margin: 5px 0;
+        font-size: 1.2rem;
+      }
+      #closeModal {
+        margin-top: 15px;
+        padding: 8px 16px;
+        background: #301a17;
+        color: #f0e7d8;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: "Cinzel", serif;
+      }
     </style>
   </head>
   <body>
     <button id="rollBtn">Rolar Dado</button>
+    <div id="resultModal">
+      <div id="modalContent">
+        <h2 id="modalTitle">Resultado</h2>
+        <p id="modalText">Você rolou um <span id="rollNumber">0</span></p>
+        <button id="closeModal">Fechar</button>
+      </div>
+    </div>
+
+    <audio id="rollSound"  preload="auto" src="sounds/roll.mp3"></audio>
+    <audio id="critSound"  preload="auto" src="sounds/crit.mp3"></audio>
+    <audio id="failSound"  preload="auto" src="sounds/error.mp3"></audio>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -143,88 +190,83 @@
         20: { x: 17.528, y: 23.562, z: 17.709 },
       };
 
+      const rollSound = document.getElementById("rollSound");
+      const critSound = document.getElementById("critSound");
+      const failSound = document.getElementById("failSound");
+      const modal = document.getElementById("resultModal");
+      const title = document.getElementById("modalTitle");
+      const text = document.getElementById("modalText");
+      const numberSpan = document.getElementById("rollNumber");
+      document.getElementById("closeModal").onclick = () =>
+        (modal.style.display = "none");
+
+      // roll button
       document.getElementById("rollBtn").addEventListener("click", () => {
         if (!dice) return;
-
+        rollSound.currentTime = 0;
+        rollSound.play();
         const result = Math.floor(Math.random() * 20) + 1;
-        const rot = numberRotations[result];
-
-        const spin = rot
-          ? {
-              x: rot.x + Math.PI * 6,
-              y: rot.y + Math.PI * 6,
-              z: rot.z + Math.PI * 6,
-            }
-          : {
-              x: dice.rotation.x + Math.PI * 2 * (Math.random() + 1),
-              y: dice.rotation.y + Math.PI * 2 * (Math.random() + 1),
-              z: dice.rotation.z + Math.PI * 2 * (Math.random() + 1),
-            };
-
+        const preset = numberRotations[result];
+        const spins = Math.floor(Math.random() * 3) + 2;
+        const target = {
+          x: preset.x + spins * Math.PI * 2,
+          y: preset.y + spins * Math.PI * 2,
+          z: preset.z + spins * Math.PI * 2,
+        };
+        const duration = 1.5 + Math.random() * 1.5;
         gsap.to(dice.rotation, {
-          duration: 3,
-          ...spin,
+          duration,
+          x: target.x,
+          y: target.y,
+          z: target.z,
           ease: "power4.out",
           onComplete: () => {
-            console.log("Número rolado:", result);
-            // luz de destaque
-            const hl = new THREE.PointLight(0xffd700, 2, 5);
-            hl.position.set(0, 0, 3);
-            scene.add(hl);
-            setTimeout(() => scene.remove(hl), 1500);
+            if (result === 20) critSound.play();
+            else if (result === 1) failSound.play();
+            numberSpan.textContent = result;
+            title.textContent =
+              result === 20
+                ? "Sucesso Crítico!"
+                : result === 1
+                ? "Falha Crítica"
+                : "Resultado";
+            text.innerHTML = `Você rolou um <strong>${result}</strong>`;
+            modal.style.display = "flex";
           },
         });
       });
 
-      function highlightResult() {
-        const highlight = new THREE.PointLight(0xffd700, 2, 5); // Luz dourada
-        highlight.position.set(0, 0, 3);
-        scene.add(highlight);
-
-        // Remover a luz depois de 1.5 segundos
-        setTimeout(() => {
-          scene.remove(highlight);
-        }, 1500);
+      // drag handlers
+      let isDragging = false,
+        prev = { x: 0, y: 0 };
+      function getPointer(e) {
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX, y: t.clientY };
       }
-
-      let isDragging = false;
-      let previousMousePosition = { x: 0, y: 0 };
-
-      renderer.domElement.addEventListener("mousedown", onPointerDown);
-      renderer.domElement.addEventListener("mousemove", onPointerMove);
-      renderer.domElement.addEventListener("mouseup", onPointerUp);
-
-      renderer.domElement.addEventListener("touchstart", onPointerDown);
-      renderer.domElement.addEventListener("touchmove", onPointerMove);
-      renderer.domElement.addEventListener("touchend", onPointerUp);
-
-      function getPointer(event) {
-        const e = event.touches ? event.touches[0] : event;
-        return { x: e.clientX, y: e.clientY };
-      }
-
-      function onPointerDown(evt) {
+      function onDown(e) {
         isDragging = true;
-        const p = getPointer(evt);
-        previousPointer = { x: p.x, y: p.y };
+        prev = getPointer(e);
       }
-
-      function onPointerMove(evt) {
+      function onMove(e) {
         if (!dice || !isDragging) return;
-        evt.preventDefault();
-        const p = getPointer(evt);
-        const deltaMove = {
-          x: p.x - previousPointer.x,
-          y: p.y - previousPointer.y,
-        };
-        dice.rotation.y += deltaMove.x * 0.01;
-        dice.rotation.x += deltaMove.y * 0.01;
-        previousPointer = { x: p.x, y: p.y };
+        e.preventDefault();
+        const cur = getPointer(e);
+        dice.rotation.y += (cur.x - prev.x) * 0.01;
+        dice.rotation.x += (cur.y - prev.y) * 0.01;
+        prev = cur;
       }
-
-      function onPointerUp() {
+      function onUp() {
         isDragging = false;
       }
+      ["mousedown", "touchstart"].forEach((ev) =>
+        renderer.domElement.addEventListener(ev, onDown)
+      );
+      ["mousemove", "touchmove"].forEach((ev) =>
+        renderer.domElement.addEventListener(ev, onMove)
+      );
+      ["mouseup", "touchend", "touchcancel"].forEach((ev) =>
+        renderer.domElement.addEventListener(ev, onUp)
+      );
     </script>
   </body>
 </html>
